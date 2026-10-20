@@ -1,0 +1,14 @@
+# Apples vs Oranges (Tic-Tac-Toe)
+
+A small practice project: tic-tac-toe for two players, played with apples and oranges instead of X and O.
+
+**Live demo:** https://eetujj.github.io/tictactoedemo/
+
+## Features
+- Two-player game with win and draw detection
+- Winning line is highlighted
+- Score counter across games
+- Works on desktop and mobile, keyboard accessible
+
+## Tech
+HTML, CSS and vanilla JavaScript in a single file, no libraries.

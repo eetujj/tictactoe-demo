@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Apples vs Oranges</title>
+<style>
+  :root {
+    --bg: #e4efd9;
+    --ink: #1f3a24;
+    --tile: #f7fbf2;
+    --tile-hover: #ffffff;
+    --win: #ffe58a;
+    --apple: #c62828;
+    --orange: #e8710a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: Georgia, "Times New Roman", serif;
+  }
+  main { width: min(92vw, 400px); text-align: center; padding: 16px 0; }
+  h1 { font-size: 2rem; margin: 0 0 4px; }
+  #status { min-height: 1.6em; margin: 0 0 16px; font-size: 1.15rem; }
+  #board {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .cell {
+    aspect-ratio: 1;
+    font-size: clamp(2.2rem, 12vw, 3.6rem);
+    background: var(--tile);
+    border: 2px solid var(--ink);
+    border-radius: 10px;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .cell:hover:not(:disabled) { background: var(--tile-hover); }
+  .cell:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+  .cell:disabled { cursor: default; color: inherit; }
+  .cell.win { background: var(--win); }
+  #score {
+    display: flex;
+    justify-content: space-around;
+    margin: 20px 0 14px;
+    font-size: 1.1rem;
+  }
+  #score strong { font-size: 1.5rem; }
+  .actions { display: flex; gap: 10px; justify-content: center; }
+  .actions button {
+    font: inherit;
+    padding: 8px 16px;
+    border: 2px solid var(--ink);
+    border-radius: 8px;
+    background: var(--ink);
+    color: var(--bg);
+    cursor: pointer;
+  }
+  .actions button.secondary { background: transparent; color: var(--ink); }
+  .actions button:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Apples vs Oranges</h1>
+  <p id="status" aria-live="polite"></p>
+  <div id="board"></div>
+  <div id="score">
+    <span>🍎 <strong id="score-apple">0</strong></span>
+    <span>Draws <strong id="score-draw">0</strong></span>
+    <span>🍊 <strong id="score-orange">0</strong></span>
+  </div>
+  <div class="actions">
+    <button id="restart">New game</button>
+    <button id="reset-score" class="secondary">Reset score</button>
+  </div>
+</main>
+
+<script>
+  const SYMBOLS = { apple: "🍎", orange: "🍊" };
+  const LINES = [
+    [0, 1, 2], [3, 4, 5], [6, 7, 8],
+    [0, 3, 6], [1, 4, 7], [2, 5, 8],
+    [0, 4, 8], [2, 4, 6]
+  ];
+
+  const boardEl = document.getElementById("board");
+  const statusEl = document.getElementById("status");
+  const scoreEls = {
+    apple: document.getElementById("score-apple"),
+    orange: document.getElementById("score-orange"),
+    draw: document.getElementById("score-draw")
+  };
+
+  let board, current, gameOver;
+  const score = { apple: 0, orange: 0, draw: 0 };
+
+  // Build the 9 cells once
+  const cells = [];
+  for (let i = 0; i < 9; i++) {
+    const btn = document.createElement("button");
+    btn.className = "cell";
+    btn.addEventListener("click", () => play(i));
+    boardEl.appendChild(btn);
+    cells.push(btn);
+  }
+
+  function startGame() {
+    board = Array(9).fill(null);
+    current = "apple";
+    gameOver = false;
+    cells.forEach((c, i) => {
+      c.textContent = "";
+      c.disabled = false;
+      c.classList.remove("win");
+      c.setAttribute("aria-label", "Square " + (i + 1) + ", empty");
+    });
+    statusEl.textContent = "Apple's turn " + SYMBOLS.apple;
+  }
+
+  function findWinner() {
+    for (const line of LINES) {
+      const [a, b, c] = line;
+      if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+        return { player: board[a], line };
+      }
+    }
+    return null;
+  }
+
+  function play(i) {
+    if (gameOver || board[i]) return;
+    board[i] = current;
+    cells[i].textContent = SYMBOLS[current];
+    cells[i].disabled = true;
+    cells[i].setAttribute("aria-label", "Square " + (i + 1) + ", " + current);
+
+    const result = findWinner();
+    if (result) {
+      endGame();
+      result.line.forEach(idx => cells[idx].classList.add("win"));
+      score[result.player]++;
+      statusEl.textContent = (result.player === "apple" ? "Apples" : "Oranges") +
+        " win! " + SYMBOLS[result.player];
+    } else if (board.every(Boolean)) {
+      endGame();
+      score.draw++;
+      statusEl.textContent = "It's a draw. Fruit salad!";
+    } else {
+      current = current === "apple" ? "orange" : "apple";
+      statusEl.textContent = (current === "apple" ? "Apple's" : "Orange's") +
+        " turn " + SYMBOLS[current];
+    }
+    updateScore();
+  }
+
+  function endGame() {
+    gameOver = true;
+    cells.forEach(c => (c.disabled = true));
+  }
+
+  function updateScore() {
+    scoreEls.apple.textContent = score.apple;
+    scoreEls.orange.textContent = score.orange;
+    scoreEls.draw.textContent = score.draw;
+  }
+
+  document.getElementById("restart").addEventListener("click", startGame);
+  document.getElementById("reset-score").addEventListener("click", () => {
+    score.apple = score.orange = score.draw = 0;
+    updateScore();
+    startGame();
+  });
+
+  startGame();
+</script>
+</body>
+</html>
